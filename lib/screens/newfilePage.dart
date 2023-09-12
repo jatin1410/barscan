@@ -1,22 +1,32 @@
-import 'package:barscan/screens/newfilePage.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({
+class NewFilePage extends StatefulWidget {
+  const NewFilePage({
     Key? key,
   }) : super(key: key);
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<NewFilePage> createState() => _NewFilePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _NewFilePageState extends State<NewFilePage> {
+  late File file;
+  String filename = "Create File";
   String _scanBarcode = "";
-  String currentDate = DateFormat('yMd').format(DateTime.now());
-  String currentTime = DateFormat.Hm().format(DateTime.now());
+
+   void initState() {
+    super.initState();
+    // call the function
+ //gi   createNewFile();
+  }
+
 
   //-----------------------------------------barcode scan function----------------------
   scanBarcodeNormal() async {
@@ -47,6 +57,7 @@ class _HomePageState extends State<HomePage> {
             title: const Text("Attention"),
             content: Text("Barcode value : $_scanBarcode"),
             actions: [
+              TextButton(child: const Text('Add'), onPressed: () {}),
               TextButton(
                   child: const Text('Close'),
                   onPressed: () {
@@ -55,87 +66,75 @@ class _HomePageState extends State<HomePage> {
             ],
           ));
 
+  //-----------------------------------------------create New file-----------------------------
+
+  Future createNewFile() async {
+    var status = await Permission.storage.status;
+    print(status);
+    if (!status.isGranted) {
+      await Permission.storage.request();
+      print("permission  granted");
+    } else {
+      print("permission not granted");
+    }
+    Directory? dicr = await getExternalStorageDirectory();
+    print(dicr!.path);
+    String newPath = "";
+    List<String> folders = dicr.path.split("/");
+    for (int i = 1; i < folders.length; i++) {
+      String folder = folders[i];
+      if (folder != "Android") {
+        newPath += "/" + folder;
+      } else {
+        break;
+      }
+    }
+    newPath += "/Android/gesl";
+    dicr = Directory(newPath);
+    print(dicr.path);
+    await Directory(dicr.path).create(recursive: true);
+    String currentDate = DateFormat('yMd').format(DateTime.now());
+    String currentTime = DateFormat.Hm().format(DateTime.now());
+    String str = "/barcode.txt";
+    final file = File(dicr.path + str);
+    print(file);
+   
+    file.writeAsString("Now file opened");
+
+
+      final content = await file.readAsString();
+       print(content.length);
+       print(content);
+    print(" hi i am here ! ");
+    //   setState(() {
+    //     filename = str;
+    //   });
+  }
+
   @override
   Widget build(BuildContext context) {
     var size = MediaQuery.of(context).size;
     return Scaffold(
-      appBar: AppBar(actions: <Widget>[
+      appBar: AppBar(title: Text(filename), actions: <Widget>[
         IconButton(
-          onPressed: scanBarcodeNormal,
-          icon: const Icon(Icons.qr_code_2_outlined),
+          onPressed: () {},
+          icon: const Icon(Icons.edit),
         )
       ]),
       body: SafeArea(
         child: ListView(
           children: [
-            //-------------------------------------------card---------------------------------
             Container(
-              height: size.height * 0.05,
+              height: size.height * 0.65,
             ),
-            Container(
-              height: size.height * 0.25,
-              width: size.width * 0.5,
-              // padding:EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 0.0),
-              margin: EdgeInsets.fromLTRB(25.0, 0.0, 25.0, 0.0),
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: Colors.blue[600]),
-              // padding: EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Container(
-                    height: size.height * 0.1,
-                  ),
-                  Container(
-                    // padding: EdgeInsets.fromLTRB(25.0, 0.0, 25.0, 0.0),
-                    //  height: size.height*0.15,
-                    child: const Text(
-                      "GESL",
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 30),
-                    ),
-                  ),
-                  Container(
-                    height: size.height * 0.05,
-                  ),
-                  const Divider(
-                    thickness: 1,
-                    color: Colors.black,
-                    indent: 30,
-                    endIndent: 30,
-                  ),
-                  Container(
-                    margin: EdgeInsets.fromLTRB(27.0, 0.0, 27.0, 0.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      // ignore: prefer_const_literals_to_create_immutables
-                      children: <Widget>[
-                        InkWell(
-                          onTap: () {},
-                          child: Text(currentDate),
-                        ),
-                        InkWell(
-                          onTap: () {},
-                          child: Text(currentTime),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              height: size.height * 0.35,
-            ),
+
             //----------------------------------------buttons-----------------------------------------
             Container(
               height: size.height * 0.15,
               child: Row(
                 children: [
                   InkWell(
-                    onTap: () {},
+                    onTap: createNewFile,
                     child: Container(
                       height: size.height * 0.15,
                       width: size.width * 0.28,
@@ -157,11 +156,11 @@ class _HomePageState extends State<HomePage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Image.asset(
-                              'assets/home/openfile.png',
+                              'assets/home/file.png',
                             ),
                             //  Container(height: size.width*0.01,),
                             const Text(
-                              "Existing",
+                              "Create",
                               style: TextStyle(fontSize: 11),
                             )
                           ],
@@ -169,6 +168,38 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ), //),
+                  InkWell(
+                    onTap: () {},
+                    child: Container(
+                      height: size.height * 0.15,
+                      width: size.width * 0.28,
+                      decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.grey[300]),
+                      margin: EdgeInsets.fromLTRB(0.0, size.height * 0.01,
+                          size.width * 0.025, size.height * 0.01),
+                      padding: EdgeInsets.fromLTRB(
+                          size.width * 0.08,
+                          size.height * 0.00,
+                          size.width * 0.08,
+                          size.width * 0.0),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset('assets/home/openfile.png'),
+                            const SizedBox(
+                              height: 5,
+                            ),
+                            const Text(
+                              "Open",
+                              style: TextStyle(fontSize: 11),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                   InkWell(
                     onTap: scanBarcodeNormal,
                     child: Container(
@@ -201,38 +232,6 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),
-                  InkWell(
-                    onTap: newfilePage,
-                    child: Container(
-                      height: size.height * 0.15,
-                      width: size.width * 0.28,
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: Colors.grey[300]),
-                      margin: EdgeInsets.fromLTRB(0.0, size.height * 0.01,
-                          size.width * 0.025, size.height * 0.01),
-                      padding: EdgeInsets.fromLTRB(
-                          size.width * 0.08,
-                          size.height * 0.00,
-                          size.width * 0.08,
-                          size.width * 0.0),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset('assets/home/file.png'),
-                            const SizedBox(
-                              height: 5,
-                            ),
-                            const Text(
-                              "New",
-                              style: TextStyle(fontSize: 11),
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -240,10 +239,5 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
-  }
-
-  newfilePage() {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (context) => NewFilePage()));
   }
 }
