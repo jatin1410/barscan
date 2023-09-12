@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -19,14 +20,14 @@ class NewFilePage extends StatefulWidget {
 class _NewFilePageState extends State<NewFilePage> {
   late File file;
   String filename = "Create File";
+  String filepath = "";
   String _scanBarcode = "";
 
-   void initState() {
+  void initState() {
     super.initState();
     // call the function
- //gi   createNewFile();
+    //gi   createNewFile();
   }
-
 
   //-----------------------------------------barcode scan function----------------------
   scanBarcodeNormal() async {
@@ -57,26 +58,18 @@ class _NewFilePageState extends State<NewFilePage> {
             title: const Text("Attention"),
             content: Text("Barcode value : $_scanBarcode"),
             actions: [
-              TextButton(child: const Text('Add'), onPressed: () {}),
               TextButton(
                   child: const Text('Close'),
                   onPressed: () {
                     Navigator.of(context).pop();
                   }),
+              TextButton(child: const Text('Add'), onPressed: saveBar),
             ],
           ));
 
   //-----------------------------------------------create New file-----------------------------
 
-  Future createNewFile() async {
-    var status = await Permission.storage.status;
-    print(status);
-    if (!status.isGranted) {
-      await Permission.storage.request();
-      print("permission  granted");
-    } else {
-      print("permission not granted");
-    }
+  Future<Directory> findDirectory() async {
     Directory? dicr = await getExternalStorageDirectory();
     print(dicr!.path);
     String newPath = "";
@@ -89,27 +82,104 @@ class _NewFilePageState extends State<NewFilePage> {
         break;
       }
     }
-    newPath += "/Android/gesl";
+    newPath += "/Download";
     dicr = Directory(newPath);
     print(dicr.path);
-    await Directory(dicr.path).create(recursive: true);
+    return dicr;
+  }
+
+  Future<File> createFile(String path) async {
     String currentDate = DateFormat('yMd').format(DateTime.now());
     String currentTime = DateFormat.Hm().format(DateTime.now());
     String str = "/barcode.txt";
-    final file = File(dicr.path + str);
-    print(file);
-   
-    file.writeAsString("Now file opened");
-
-
-      final content = await file.readAsString();
-       print(content.length);
-       print(content);
-    print(" hi i am here ! ");
-    //   setState(() {
-    //     filename = str;
-    //   });
+    setState(() {
+      filename = str;
+      filepath = path + str;
+    });
+    return File(path + str);
   }
+
+  Future createNewFile() async {
+    Directory dicr;
+    File file;
+    var status = await Permission.storage.status;
+    print(status);
+    if (!status.isGranted) {
+      await Permission.storage.request();
+      print("permission  granted");
+      dicr = await findDirectory();
+      await Directory(dicr.path).create(recursive: true);
+      file = await createFile(dicr.path);
+      Fluttertoast.showToast(
+          msg: "File Created Sucessfully",
+          fontSize: 18,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.blue,
+          textColor: Colors.white);
+      print(file);
+      //     await saveBar();
+      //file.writeAsString("Now file opened");
+    } else {
+      print("permission not granted");
+    }
+  }
+
+  Future saveBar() async {
+    File file = File(filepath);
+    if (!File(filepath).existsSync()) {
+      await file.writeAsString("$_scanBarcode\n");
+      Fluttertoast.showToast(
+          msg: "Barcode Added Sucessfully!!",
+          fontSize: 18,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.blue,
+          textColor: Colors.white);
+          Navigator.of(context).pop();
+    } else {
+      final contents = await file.readAsString();
+      List<String> bar = file.readAsLinesSync();
+      int a = 0;
+      for (int i = 0; i < bar.length; i++) {
+        if (_scanBarcode == bar[i]) {
+          a = 1;
+          Navigator.of(context).pop();
+          openDialog2();
+          break;
+        }
+      }
+      if (a == 0) {
+        file.writeAsString(contents + "$_scanBarcode\n");
+        Fluttertoast.showToast(
+            msg: "Barcode Added sucessfully !!",
+            fontSize: 18,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.blue,
+            textColor: Colors.white);
+            Navigator.of(context).pop();
+      }
+    }
+  }
+
+  
+//-------------------------------------------alertmsg of barcode value-----------------------------
+  openDialog2() => showDialog(
+      context: context,
+      builder: (builder) => AlertDialog(
+            alignment: Alignment.center,
+            elevation: 5,
+            backgroundColor: Colors.orange[500],
+            contentPadding: const EdgeInsets.fromLTRB(25, 10, 25, 10),
+            title: const Text("Attention"),
+            content: Text("Barcode value : $_scanBarcode \n Already Exists!!"),
+            actions: [
+              TextButton(
+                  child: const Text('Close'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  }),
+            ],
+          ));
+
 
   @override
   Widget build(BuildContext context) {
